@@ -56,7 +56,7 @@ int main(int, char**)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window* window = SDL_CreateWindow("window test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    SDL_Window* window = SDL_CreateWindow("canvas", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
     //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
     SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
@@ -106,10 +106,15 @@ int main(int, char**)
     //IM_ASSERT(font != NULL);
 
     // Our state
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGuiWindowFlags ImGui_window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollWithMouse;
+
     bool show_demo_window = true;
     bool show_canvas_window = true;
     static float colors[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-    ImVec4 color_picker = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+    ImVec4 color_picker = ImVec4(0.247f, 0.360f, 0.407f, 1.0f);
+    float brush_size = 1.0f;
+
 
     // Main loop
     bool done = false;
@@ -139,15 +144,38 @@ int main(int, char**)
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
         if(show_canvas_window) {
-            ImGui::Begin("canvas");
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::Begin("canvas", NULL, ImGui_window_flags);
 
             static ImVector<ImVec2> points;
+
+            static bool clear_canvas = 0;
+            static bool undo_canvas = 0;
+
+            ImGui::ColorEdit4("", colors);
+            ImGui::SliderFloat("brush size", &brush_size, 0.0f, 100.0f);
+
+            if(ImGui::Button("clear canvas") && points.Size > 0)
+                clear_canvas = 1;
+            if(ImGui::Button("undo") && points.Size > 0)
+                undo_canvas = 1;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
             static ImVec2 scrolling(0.0f, 0.0f);
             static bool adding_line = false;
+
+            if(clear_canvas) {
+                clear_canvas = 0;
+                points.clear();
+            }
+            if(undo_canvas) {
+                undo_canvas = 0;
+                points.resize(points.size() - 2);
+            }
 
             // Typically you would use a BeginChild()/EndChild() pair to benefit from a clipping region + own scrolling.
             // Here we demonstrate that this can be replaced by simple offsetting + custom drawing + PushClipRect/PopClipRect() calls.
@@ -170,7 +198,7 @@ int main(int, char**)
             //Draw border and background color
             ImGuiIO& io = ImGui::GetIO();
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(0, 50, 0, 255));
+            draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(63, 71, 104, 255));
             draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(255, 255, 255, 255));
 
             // This will catch our interactions
@@ -211,10 +239,13 @@ int main(int, char**)
                 ImGui::EndPopup();
             }
 
+            if(ImGui::Button("clear canvas"))
+                points.clear();
+
             // Draw grid + all lines in the canvas
             draw_list->PushClipRect(canvas_p0, canvas_p1, true);
             for (int n = 0; n < points.Size; n += 2)
-                draw_list->AddLine(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(colors[0]*255, colors[1]*255, colors[2]*255, colors[3]*255), 2.0f);
+                draw_list->AddLine(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(colors[0]*255, colors[1]*255, colors[2]*255, colors[3]*255), brush_size);
             draw_list->PopClipRect();
 
         //}
@@ -227,11 +258,9 @@ int main(int, char**)
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollWithMouse;
 
             static int corner = 0;
 
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
             const float padding = 10.0f;
             ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
             ImVec2 work_size = viewport->WorkSize;
@@ -245,7 +274,7 @@ int main(int, char**)
             //ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 1919, main_viewport->WorkPos.y + 1079), ImGuiCond_Once);
             ImGui::SetNextWindowSize(ImVec2(20, 20), ImGuiCond_Once);
 
-            ImGui::Begin("color options", NULL, window_flags); // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("color options", NULL, ImGui_window_flags | ImGuiWindowFlags_NoBackground); // Create a window called "Hello, world!" and append into it.
 
             ImGui::ColorEdit4("", colors); // Edit 3 floats representing a color
 
