@@ -149,6 +149,8 @@ int main(int, char**)
             ImGui::Begin("canvas", NULL, ImGui_window_flags);
 
             static ImVector<ImVec2> points;
+            static ImVec2 scrolling(0.0f, 0.0f);
+            static bool adding_line = false;
 
             static bool clear_canvas = 0;
             static bool undo_canvas = 0;
@@ -156,37 +158,15 @@ int main(int, char**)
             ImGui::ColorEdit4("", colors);
             ImGui::SliderFloat("brush size", &brush_size, 0.0f, 100.0f);
 
-            if(ImGui::Button("clear canvas") && points.Size > 0)
-                clear_canvas = 1;
-            if(ImGui::Button("undo") && points.Size > 0)
-                undo_canvas = 1;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            static ImVec2 scrolling(0.0f, 0.0f);
-            static bool adding_line = false;
-
-            if(clear_canvas) {
-                clear_canvas = 0;
-                points.clear();
-            }
-            if(undo_canvas) {
+            if(ImGui::Button("clear canvas") && points.Size > 0) {
                 undo_canvas = 0;
                 points.resize(points.size() - 2);
             }
 
-            // Typically you would use a BeginChild()/EndChild() pair to benefit from a clipping region + own scrolling.
-            // Here we demonstrate that this can be replaced by simple offsetting + custom drawing + PushClipRect/PopClipRect() calls.
-            // To use a child window instead we could use, e.g:
-            //      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));      // Disable padding
-            //      ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));  // Set a background color
-            //      ImGui::BeginChild("canvas", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_NoMove);
-            //      ImGui::PopStyleColor();
-            //      ImGui::PopStyleVar();
-            //      [...]
-            //      ImGui::EndChild();
+            if(ImGui::Button("undo") && points.Size > 0) {
+                clear_canvas = 0;
+                points.clear();
+            }
 
             // Using InvisibleButton() as a convenience 1) it will advance the layout cursor and 2) allows us to use IsItemHovered()/IsItemActive()
             ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
@@ -250,9 +230,6 @@ int main(int, char**)
 
         //}
         ImGui::End();
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         }
 
