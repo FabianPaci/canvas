@@ -152,21 +152,14 @@ int main(int, char**)
             static ImVec2 scrolling(0.0f, 0.0f);
             static bool adding_line = false;
 
-            static bool clear_canvas = 0;
-            static bool undo_canvas = 0;
-
             ImGui::ColorEdit4("", colors);
             ImGui::SliderFloat("brush size", &brush_size, 0.0f, 100.0f);
 
-            if(ImGui::Button("clear canvas") && points.Size > 0) {
-                undo_canvas = 0;
-                points.resize(points.size() - 2);
-            }
-
-            if(ImGui::Button("undo") && points.Size > 0) {
-                clear_canvas = 0;
+            if(ImGui::Button("clear canvas") && points.Size > 0)
                 points.clear();
-            }
+
+            if(ImGui::Button("undo") && points.Size > 0)
+                points.resize(points.size() - 2);
 
             // Using InvisibleButton() as a convenience 1) it will advance the layout cursor and 2) allows us to use IsItemHovered()/IsItemActive()
             ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
@@ -218,9 +211,6 @@ int main(int, char**)
                 if (ImGui::MenuItem("Remove all", NULL, false, points.Size > 0)) { points.clear(); }
                 ImGui::EndPopup();
             }
-
-            if(ImGui::Button("clear canvas"))
-                points.clear();
 
             // Draw grid + all lines in the canvas
             draw_list->PushClipRect(canvas_p0, canvas_p1, true);
